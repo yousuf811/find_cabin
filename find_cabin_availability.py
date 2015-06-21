@@ -11,7 +11,7 @@ import traceback
 from email.mime.text import MIMEText
 
 # Need to be set by command line arguments.
-FROM_EMAIL = ''
+FROM_EMAIL = ''  # Needs to be a gmail address
 FROM_EMAIL_PASSWORD = ''
 TO_EMAILS = []
 
