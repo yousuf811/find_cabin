@@ -126,8 +126,6 @@ def SendEmail(subject, message):
     Log('\tehlo')
     server.ehlo()
     Log('\tlogin')
-    print FROM_EMAIL
-    print FROM_EMAIL_PASSWORD
     server.login(FROM_EMAIL, FROM_EMAIL_PASSWORD)
     Log('\tsendmail')
     server.sendmail(FROM_EMAIL, TO_EMAILS, message.as_string())
