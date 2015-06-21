@@ -1,6 +1,7 @@
 import bs4
 import collections
 import datetime
+import pytz
 import random
 import requests
 import smtplib
@@ -287,7 +288,7 @@ def WaitIfQuitePeriod():
     # any action on results. If we are in quite period just sleep until its 8am.
     start_hour = 8
     end_hour = 1
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(pytz.timezone('US/Pacific'))
 
     # if we are between end_hour and start_hour we have to sleep till start_hour. (this check won't work
     # if end_hour is > start_hour e.g. 23)
