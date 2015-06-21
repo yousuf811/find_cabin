@@ -295,6 +295,7 @@ def WaitIfQuitePeriod():
     if end_hour <= now.hour < start_hour:
         start = datetime.datetime(hour=start_hour, day=now.day, month=now.month, year=now.year)
         delta = start - now
+        Log('In quite period, going to sleep for %s hours' % str(delta.seconds/(60.0*60.0)))
         time.sleep(delta.seconds)
 
 
