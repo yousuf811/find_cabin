@@ -311,6 +311,10 @@ def main():
     FROM_EMAIL = sys.argv[1]
     FROM_EMAIL_PASSWORD = sys.argv[2]
     TO_EMAILS = [to_email.strip() for to_email in sys.argv[3:]]
+    print FROM_EMAIL
+    print FROM_EMAIL_PASSWORD
+    print TO_EMAILS
+    return
     while True:
         Run()
         PeriodicWait()
