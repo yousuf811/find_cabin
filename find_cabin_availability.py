@@ -308,13 +308,12 @@ def main():
         print 'Usage: find_cabin_availability.py <FROM_EMAIL> <FROM_EMAIL_PASSWORD> <TO_EMAIL> [<TO_EMAIL>,] '
         sys.exit(-1)
 
+    global FROM_EMAIL
+    global FROM_EMAIL_PASSWORD
+    global TO_EMAILS
     FROM_EMAIL = sys.argv[1]
     FROM_EMAIL_PASSWORD = sys.argv[2]
     TO_EMAILS = [to_email.strip() for to_email in sys.argv[3:]]
-    print FROM_EMAIL
-    print FROM_EMAIL_PASSWORD
-    print TO_EMAILS
-    return
     while True:
         Run()
         PeriodicWait()
