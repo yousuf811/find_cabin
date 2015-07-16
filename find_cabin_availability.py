@@ -330,7 +330,7 @@ def main():
     TO_EMAILS = [to_email.strip() for to_email in sys.argv[3:]]
     while True:
         Run()
-        #PeriodicWait()
+        PeriodicWait()
         WaitIfQuitePeriod(23, 8)  # quite period is from 1am to 8am.
 
 
