@@ -282,21 +282,33 @@ def Run():
         SendEmail(subject, message)
     Log('Finished')
 
+def Now(tz):
+    return datetime.datetime.now(tz)
 
-def WaitIfQuitePeriod():
-    # Quite period is between 8am and 1am since I'll be asleep during that time and wont be able to take
-    # any action on results. If we are in quite period just sleep until its 8am.
-    start_hour = 8
-    end_hour = 1
-    now = datetime.datetime.now(pytz.timezone('US/Pacific'))
+def WaitIfQuitePeriod(start_hour, end_hour):
+    """Waits if current time lies in a quite period until quite period ends.
 
-    # if we are between end_hour and start_hour we have to sleep till start_hour. (this check won't work
-    # if end_hour is > start_hour e.g. 23)
-    if end_hour <= now.hour < start_hour:
-        start = datetime.datetime(hour=start_hour, day=now.day, month=now.month, year=now.year)
-        delta = start - now
+    Args:
+        start_hour: int, starting hour for quite period. Valid values are between 0-23.
+        end_hour: int, ending hour for quite period. Valid values are between 0-23.
+    """
+    tz = pytz.timezone('US/Pacific')
+    now = Now(tz)
+    end_time = None
+    if start_hour < end_hour:  # quite period does not span days.
+        if  start_hour <= now.hour < end_hour:
+            end_time = datetime.datetime(hour=end_hour, day=now.day, month=now.month, year=now.year, tzinfo=tz)
+    else:  # quite period spans days.
+        if now.hour >= start_hour:  # Now is in the first day of the quite period range, so increment day.
+            end_time = datetime.datetime(hour=end_hour, day=now.day+1, month=now.month, year=now.year, tzinfo=tz)
+        elif now.hour < end_hour:  # Now is in the second day of the quite period range, so keep same day.
+            end_time = datetime.datetime(hour=end_hour, day=now.day, month=now.month, year=now.year, tzinfo=tz)
+
+    if end_time:
+        delta = end_time - now
         Log('In quite period, going to sleep for %s hours' % str(delta.seconds/(60.0*60.0)))
         time.sleep(delta.seconds)
+        return
 
 
 def PeriodicWait():
@@ -307,7 +319,7 @@ def PeriodicWait():
 
 def main():
     if len(sys.argv) < 4:
-        print 'Usage: find_cabin_availability.py <FROM_EMAIL> <FROM_EMAIL_PASSWORD> <TO_EMAIL> [<TO_EMAIL>,] '
+        print 'Usage: find_cabin_availability.py <FROM_EMAIL> <FROM_EMAIL_PASSWORD> <TO_EMAIL> [<TO_EMAIL>] '
         sys.exit(-1)
 
     global FROM_EMAIL
@@ -318,8 +330,8 @@ def main():
     TO_EMAILS = [to_email.strip() for to_email in sys.argv[3:]]
     while True:
         Run()
-        PeriodicWait()
-        WaitIfQuitePeriod()
+        #PeriodicWait()
+        WaitIfQuitePeriod(23, 8)  # quite period is from 1am to 8am.
 
 
 if __name__ == "__main__":
