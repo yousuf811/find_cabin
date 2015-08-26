@@ -3,13 +3,17 @@ import collections
 import datetime
 import pytz
 import random
+import re
 import requests
 import smtplib
 import sys
 import time
 import traceback
 
+from campsites import *
 from email.mime.text import MIMEText
+
+# TODO: Put everything in a nice class and make all globals instance variables.
 
 # Need to be set by command line arguments.
 FROM_EMAIL = ''  # Needs to be a gmail address
@@ -18,42 +22,6 @@ TO_EMAILS = []
 
 LOG_STRING = []
 DATE_FORMAT = '%a %b %d %Y'  # Wed Jan 14 2015
-REQUEST_URL = 'http://www.reserveamerica.com/camping/mount-tamalpais-sp/r/campgroundDetails.do?contractCode=CA&parkId=120063'
-BASE_FORM_PARAMS = {
-    'contractCode': 'CA',
-    'parkId': '120063',
-    'siteTypeFilter': 'ALL',
-    'availStatus': '',
-    'submitSiteForm': 'true',
-    'search': 'site',
-    'lengthOfStay': '1',
-    'campingDateFlex': '',
-    'currentMaximumWindow': '12',
-    'contractDefaultMaxWindow': 'MS:24,LT:18,GA:24',
-    'stateDefaultMaxWindow': 'MS:24,GA:24',
-    'defaultMaximumWindow': '12',
-    'loop': '',
-    'siteCode': '',
-    'lookingFor': '',
-    'camping_2001_3013': '',
-    'camping_2001_218': '',
-    'camping_2002_3013': '',
-    'camping_2002_218': '',
-    'camping_2003_3012': '',
-    'camping_3100_3012': '',
-    'camping_10001_3012': '',
-    'camping_10001_218': '',
-    'camping_3101_3012': '',
-    'camping_3101_218': '',
-    'camping_9002_3012': '',
-    'camping_9002_3013': '',
-    'camping_9002_218': '',
-    'camping_9001_3012': '',
-    'camping_9001_218': '',
-    'camping_3001_3013': '',
-    'camping_2004_3013': '',
-    'camping_2004_3012': '',
-    'camping_3102_3012': '',}
 
 
 class Error(Exception):
@@ -79,35 +47,35 @@ def FuzzySleep():
     time.sleep(sleep_time_secs)
 
 
-def GetPostData(date):
-    form_params = dict(BASE_FORM_PARAMS)
+def GetPostData(campsite, date):
+    form_params = dict(campsite.form_params)
     form_params['campingDate'] = FormatDate(date)
     return form_params
 
 
 # Email related methods
-def MakeSubjectAndMessage(start_date, end_date, site_to_available_dates):
+def MakeSubjectAndMessage(campsite, start_date, end_date, site_to_available_dates):
     Log('Preparing subject for email...')
-    subject = 'Steep Ravine Availability %s to %s' % (FormatDate(start_date), FormatDate(end_date))
+    subject = '%s Availability %s to %s' % (campsite.name, FormatDate(start_date), FormatDate(end_date))
 
     Log('Preparing message for email...')
     message = '%s\n\n' % subject
-    date_to_cabins = collections.defaultdict(list)
+    date_to_sites = collections.defaultdict(list)
     for site, dates in site_to_available_dates.iteritems():
         for date in dates:
-            date_to_cabins[date].append(site)
+            date_to_sites[date].append(site)
 
-    for date in sorted(date_to_cabins.iterkeys()):
-        cabins = sorted(date_to_cabins[date])
-        cabins_str = '  '.join(cabins)
-        message += '%s:  %s\n' % (FormatDate(date), cabins_str)
+    for date in sorted(date_to_sites.iterkeys()):
+        sites = sorted(date_to_sites[date])
+        sites_str = '  '.join(sites)
+        message += '%s:  %s\n' % (FormatDate(date), sites_str)
     Log(message)
     return subject, message
 
 
-def MakeFailureSubjectAndMessage(start_date, end_date, error):
+def MakeFailureSubjectAndMessage(campsite, start_date, end_date, error):
     global LOG_STRING
-    subject = 'Scraper failed when searching between %s to %s' % (FormatDate(start_date), FormatDate(end_date))
+    subject = 'Scraper failed when searching between %s to %s for ' % (FormatDate(start_date), FormatDate(end_date), campsite.name)
     message = 'Encountered error of type: %s\n' % type(error)
     message += '%s\n' % traceback.format_exc()
     message += 'Log:\n%s' % '\n'.join(LOG_STRING)
@@ -190,8 +158,8 @@ def GetAvailableDates(status_cells, start_date):
     return available_dates
 
 
-def GetAvailability(start_date, site_to_available_dates):
-    """Gets availability on and 14 days after start date from reserveamerica.
+def GetAvailability(campsite, start_date, site_to_available_dates):
+    """Gets availability on and 14 days after start date from reserveamerica for specified campsite.
 
     Doesn't return anything but updates the site_to_available_dates dict.
     """
@@ -200,10 +168,10 @@ def GetAvailability(start_date, site_to_available_dates):
     session = requests.Session()
 
     Log('Starting GET request to setup session cookies etc.')
-    session.get(REQUEST_URL)
+    session.get(campsite.request_url)
 
     Log('Starting POST request to retrieve 2 week availability data')
-    response = session.post(REQUEST_URL, data=GetPostData(start_date))
+    response = session.post(campsite.request_url, data=GetPostData(campsite, start_date))
 
     # Debugging response.
     # print response.text
@@ -238,15 +206,15 @@ def GetAvailability(start_date, site_to_available_dates):
         Log('Finished processing row')
 
 
-def GetAvailabilityBetweenRange(start_date, end_date):
-    """Gets availability between start_date and end_date from reserveamerica.
+def GetAvailabilityBetweenRange(campsite, start_date, end_date):
+    """Gets availability between start_date and end_date from reserveamerica for the specified campsite.
 
     Returns site_to_available_dates dict.
     """
     Log('Retrieving availability from %s to %s' % (FormatDate(start_date), FormatDate(end_date)))
     site_to_available_dates = collections.defaultdict(list)
     while start_date < end_date:
-        GetAvailability(start_date, site_to_available_dates)
+        GetAvailability(campsite, start_date, site_to_available_dates)
          # Each GetAvailability call gets 14 days data so now we increment by 14
          # and loop again.
         start_date += datetime.timedelta(days=14)
@@ -254,31 +222,31 @@ def GetAvailabilityBetweenRange(start_date, end_date):
     return site_to_available_dates
 
 
-def OnlyGetCabinAvailability(site_to_available_dates):
-    Log('Selecting only cabins from availability...')
-    cabin_to_availability_dates = {}
+def GetRequestedSiteAvailability(campsite, site_to_available_dates):
+    Log('Selecting only requested sites from availability...')
+    requested_site_to_availability_dates = {}
     for site, dates in site_to_available_dates.iteritems():
-        if site.startswith('CB'):
-            cabin_to_availability_dates[site] = dates
-    return cabin_to_availability_dates
+        if campsite.site_regex.match(site):
+            requested_site_to_availability_dates[site] = dates
+    return requested_site_to_availability_dates
 
 
-def Run():
+def Run(campsite):
     global LOG_STRING
     LOG_STRING = []
     today = datetime.date.today()
     start_date = today + datetime.timedelta(days=3)  # Searches fail unless they are 3 days from today.
     end_date = today + datetime.timedelta(days=6*30)  # Search up to 6 months.
     try:
-        site_to_available_dates = GetAvailabilityBetweenRange(start_date, end_date)
-        cabin_to_availability_dates = OnlyGetCabinAvailability(site_to_available_dates)
-        Log('Found %s available cabins' % len(cabin_to_availability_dates))
-        if cabin_to_availability_dates:
-            subject, message = MakeSubjectAndMessage(start_date, end_date, cabin_to_availability_dates)
+        site_to_available_dates = GetAvailabilityBetweenRange(campsite, start_date, end_date)
+        site_to_available_dates = GetRequestedSiteAvailability(campsite, site_to_available_dates)
+        Log('Found %s available sites' % len(site_to_available_dates))
+        if site_to_available_dates:
+            subject, message = MakeSubjectAndMessage(campsite, start_date, end_date, site_to_available_dates)
             SendEmail(subject, message)
     except BaseException as e:
         Log('Encountered exception:\n%s' % traceback.format_exc())
-        subject, message = MakeFailureSubjectAndMessage(start_date, end_date, e)
+        subject, message = MakeFailureSubjectAndMessage(campsite, start_date, end_date, e)
         SendEmail(subject, message)
     Log('Finished')
 
@@ -317,19 +285,37 @@ def PeriodicWait():
     time.sleep(sleep_time_secs)
 
 
+def ConstructAndValidateCampsiteClass(class_str):
+    campsite_class = globals().get(class_str)
+    if not campsite_class:
+        raise Error('%s is not a valid campsite class name', class_str)
+    if not hasattr(campsite_class, 'name'):
+        raise Error('name static attribute not found on campsite class: %s', class_str)
+    if not hasattr(campsite_class, 'request_url'):
+        raise Error('request_url static attribute not found on campsite class: %s', class_str)
+    if not hasattr(campsite_class, 'form_params'):
+        raise Error('form_params static attribute not found on campsite class: %s', class_str)
+    if not hasattr(campsite_class, 'site_regex'):
+        raise Error('site_regex static attribute not found on campsite class: %s', class_str)
+    return campsite_class
+
+
 def main():
-    if len(sys.argv) < 4:
-        print 'Usage: find_cabin_availability.py <FROM_EMAIL> <FROM_EMAIL_PASSWORD> <TO_EMAIL> [<TO_EMAIL>] '
+    if len(sys.argv) < 5:
+        print 'Usage: find_cabin_availability.py <CAMPSITE_CLASS_NAME> <FROM_EMAIL> <FROM_EMAIL_PASSWORD> <TO_EMAIL> [<TO_EMAIL>] '
         sys.exit(-1)
 
     global FROM_EMAIL
     global FROM_EMAIL_PASSWORD
     global TO_EMAILS
-    FROM_EMAIL = sys.argv[1]
-    FROM_EMAIL_PASSWORD = sys.argv[2]
-    TO_EMAILS = [to_email.strip() for to_email in sys.argv[3:]]
+
+    campsite = ConstructAndValidateCampsiteClass(sys.argv[1])
+    FROM_EMAIL = sys.argv[2]
+    FROM_EMAIL_PASSWORD = sys.argv[3]
+    TO_EMAILS = [to_email.strip() for to_email in sys.argv[4:]]
+
     while True:
-        Run()
+        Run(campsite)
         PeriodicWait()
         WaitIfQuitePeriod(23, 8)  # quite period is from 1am to 8am.
 
