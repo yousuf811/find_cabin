@@ -32,6 +32,8 @@ USAGE = """
     """
 
 DATE_FORMAT = '%a %b %d %Y'  # Wed Jan 14 2015
+RUN_FREQUENCY_SECS = 60  # How often the availability finder should run, currently every hour.
+EMAIL_FREQUENCY_SECS = 60*4  # How often we should send availability emails regardless of whether it changes.
 
 # TODO: Do something about improving the way we do logging.
 
@@ -126,6 +128,8 @@ class AvailabilityFinder(object):
         self.campsite = campsite
         self.email_sender = email_sender
         self.logger = logger
+        self.last_result = None  # The last availability result.
+        self.last_email_time = None  # The last time in secs we sent an availability email.
 
     def _FuzzySleep(self):
         sleep_time_secs = random.uniform(1.0, 5.0)
@@ -233,7 +237,6 @@ class AvailabilityFinder(object):
                     site_to_available_dates[site_name].extend(available_dates)
             self.logger.Log('Finished processing row')
 
-
     def _GetAvailabilityBetweenRange(self, start_date, end_date):
         """Gets availability between start_date and end_date from reserveamerica for the specified campsite.
 
@@ -249,7 +252,6 @@ class AvailabilityFinder(object):
             self._FuzzySleep()
         return site_to_available_dates
 
-
     def _FilterSiteAvailability(self, site_to_available_dates):
         self.logger.Log('Selecting only requested sites from availability...')
         requested_site_to_availability_dates = {}
@@ -258,6 +260,20 @@ class AvailabilityFinder(object):
                 requested_site_to_availability_dates[site] = dates
         return requested_site_to_availability_dates
 
+    def _ShouldSendEmail(self, site_to_available_dates):
+        """Only send email if the last_result is different from the new result or if it has been
+        greater than EMAIL_FREQUENCY_SECS since we last sent an email.."""
+        now = time.time()
+        if self.last_result != site_to_available_dates:
+            self.last_result = dict(site_to_available_dates)
+            self.last_email_time = now
+            return True
+        # If the availability hasn't changed but it has been more than EMAIL_FREQUENCY_SECS
+        # since we sent an email, send it again anyway.
+        if (now - self.last_email_time > EMAIL_FREQUENCY_SECS):
+            self.last_email_time = now
+            return True
+        return False
 
     def Run(self):
         self.logger.ClearBuffer()
@@ -271,10 +287,14 @@ class AvailabilityFinder(object):
             # Now filter out ones we don't care about.
             site_to_available_dates = self._FilterSiteAvailability(site_to_available_dates)
             self.logger.Log('Found %s available sites' % len(site_to_available_dates))
-            if site_to_available_dates:
+            if self._ShouldSendEmail(site_to_available_dates):
+                self.logger.Log('Sending email')
                 self.email_sender.SendEmail(start_date, end_date, site_to_available_dates)
+            else:
+                self.logger.Log('Not sending email.')
         except BaseException as e:
             self.logger.Log('Encountered exception:\n%s' % traceback.format_exc())
+            self.logger.Log('Sending failure email')
             self.email_sender.SendFailureEmail(start_date, end_date, e)
         self.logger.Log('Finished search for %s' % self.campsite.name)
 
@@ -316,8 +336,8 @@ def WaitIfQuitePeriod(start_hour, end_hour):
 
 
 def PeriodicWait():
-    # Run every hour with some fuzz.
-    sleep_time_secs = (60*60) + random.uniform(10.0, 100.0)
+    # Run every RUN_FREQUENCY_SECS with some fuzz.
+    sleep_time_secs = (RUN_FREQUENCY_SECS) + random.uniform(10.0, 100.0)
     time.sleep(sleep_time_secs)
 
 
