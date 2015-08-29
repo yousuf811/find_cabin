@@ -1,1 +1,1 @@
-find_cabin: python find_cabin_availability.py $FROM_EMAIL $FROM_EMAIL_PASSWORD $STEEP_RAVINE_INFO $BLACK_MOUNTAIN_INFO
+find_cabin: python find_cabin_availability.py $FROM_EMAIL $FROM_EMAIL_PASSWORD $ADMIN_EMAIL $STEEP_RAVINE_INFO $BLACK_MOUNTAIN_INFO
