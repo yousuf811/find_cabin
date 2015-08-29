@@ -15,12 +15,14 @@ from email.mime.text import MIMEText
 
 USAGE = """
     Usage:
-        find_cabin_availability.py <FROM_EMAIL> <FROM_EMAIL_PASSWORD> <CAMPSITE_INFO> <CAMPSITE_INFO> ...
+        find_cabin_availability.py <FROM_EMAIL> <FROM_EMAIL_PASSWORD> <ADMIN_EMAIL> <CAMPSITE_INFO> <CAMPSITE_INFO> ...
 
     where:
         FROM_EMAIL = the gmail address of the account from which notification emails will be sent.
 
         FROM_EMAIL_PASSWORD = the password for the FROM_EMAIL account.
+
+        ADMIN_EMAIL = the email address to which failure emails will be sent.
 
         CAMPSITE_INFO = <CAMPSITE_CLASS_NAME>:<TO_EMAILS>
 
@@ -32,8 +34,8 @@ USAGE = """
     """
 
 DATE_FORMAT = '%a %b %d %Y'  # Wed Jan 14 2015
-RUN_FREQUENCY_SECS = 60  # How often the availability finder should run, currently every hour.
-EMAIL_FREQUENCY_SECS = 60*4  # How often we should send availability emails regardless of whether it changes.
+RUN_FREQUENCY_SECS = 60*60  # How often the availability finder should run, currently every hour.
+EMAIL_FREQUENCY_SECS = 60*60*24  # How often we should send availability emails regardless of whether it changes, currently every 24 hours.
 
 # TODO: Do something about improving the way we do logging.
 
@@ -61,8 +63,9 @@ class Logger(object):
 
 class EmailSender(object):
 
-    def __init__(self, campsite, from_email, from_email_password, to_emails, logger):
+    def __init__(self, campsite, admin_email, from_email, from_email_password, to_emails, logger):
         self.campsite = campsite
+        self.admin_email = admin_email
         self.from_email = from_email
         self.from_email_password = from_email_password
         self.to_emails = to_emails
@@ -70,11 +73,11 @@ class EmailSender(object):
 
     def SendEmail(self, start_date, end_date, site_to_available_dates):
         subject, message = self._MakeSubjectAndMessage(start_date, end_date, site_to_available_dates)
-        self._Send(subject, message)
+        self._Send(subject, message, self.to_emails)
 
     def SendFailureEmail(self, start_date, end_date, error):
         subject, message = self._MakeFailureSubjectAndMessage(start_date, end_date, error)
-        self._Send(subject, message)
+        self._Send(subject, message, [self.admin_email])
 
     def _MakeSubjectAndMessage(self, start_date, end_date, site_to_available_dates):
         self.logger.Log('Preparing subject for email...')
@@ -102,11 +105,11 @@ class EmailSender(object):
         return subject, message
 
 
-    def _Send(self, subject, message):
+    def _Send(self, subject, message, to_emails):
         message = MIMEText(message)
         message['Subject'] = subject
         message['From'] = self.from_email
-        message['To'] = ','.join(self.to_emails)
+        message['To'] = ','.join(to_emails)
 
         self.logger.Log('Creating smtp server')
         server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -117,7 +120,7 @@ class EmailSender(object):
         self.logger.Log('\tlogin')
         server.login(self.from_email, self.from_email_password)
         self.logger.Log('\tsendmail')
-        server.sendmail(self.from_email, self.to_emails, message.as_string())
+        server.sendmail(self.from_email, to_emails, message.as_string())
         self.logger.Log('\tquit')
         server.quit()
 
@@ -371,16 +374,17 @@ def ErrorExit(msg, args=None):
 
 
 def main():
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 5:
         ErrorExit(USAGE)
 
     from_email = sys.argv[1]  # Needs to be a gmail address
     from_email_password = sys.argv[2]
+    admin_email = sys.argv[3]
     finders = []
-    for campsite_info in sys.argv[3:]:
+    for campsite_info in sys.argv[4:]:
         campsite, to_emails = ConstructAndValidateCampsiteInfo(campsite_info)
         logger = Logger()
-        email_sender = EmailSender(campsite, from_email, from_email_password, to_emails, logger)
+        email_sender = EmailSender(campsite, admin_email, from_email, from_email_password, to_emails, logger)
         availability_finder = AvailabilityFinder(campsite, email_sender, logger)
         finders.append(availability_finder)
 
