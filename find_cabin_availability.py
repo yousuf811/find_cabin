@@ -34,7 +34,7 @@ USAGE = """
     """
 
 DATE_FORMAT = '%a %b %d %Y'  # Wed Jan 14 2015
-RUN_FREQUENCY_SECS = 60*60  # How often the availability finder should run, currently every hour.
+RUN_FREQUENCY_SECS = 60*10  # How often the availability finder should run, currently every hour.
 EMAIL_FREQUENCY_SECS = 60*60*24  # How often we should send availability emails regardless of whether it changes, currently every 24 hours.
 
 # TODO: Do something about improving the way we do logging.
