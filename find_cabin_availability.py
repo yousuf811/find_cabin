@@ -158,8 +158,7 @@ class AvailabilityFinder(object):
         return rows
 
     def _IsAvailable(self, cell):
-        element = cell.a if cell.a else cell
-        return element.string and str(element.string).strip() == 'A'
+        return cell.string and cell.string == 'A'
 
     def _GetStatusCells(self, row):
         status_cells = row.find_all('td', class_='status')
@@ -171,9 +170,7 @@ class AvailabilityFinder(object):
         site_name_tag = row.find(class_='siteListLabel')
         if not site_name_tag:
             raise Error('Could not find any html tag with class=siteListLabel')
-        if not site_name_tag.a:
-            raise Error('Could not "a" element inside site_name_tag')
-        return str(site_name_tag.a.string).strip()
+        return site_name_tag.string
 
     def _IsValidRow(self, row):
         # The calendar table has rows for alignment etc. that don't have actual
@@ -238,7 +235,6 @@ class AvailabilityFinder(object):
 
                 self.logger.Log('Getting availability dates')
                 available_dates = self._GetAvailableDates(status_cells, start_date)
-
                 self.logger.Log('Found %s available dates' % len(available_dates))
                 if available_dates:
                     site_to_available_dates[site_name].extend(available_dates)
