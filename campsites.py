@@ -10,7 +10,7 @@ def MergeBaseFormParams(campsite_form_params):
         'submitSiteForm': 'true',
         'search': 'site',
         'lengthOfStay': '1',
-        'campingDateFlex': '',
+        'campingDateFlex': '2w',
         'currentMaximumWindow': '12',
         'defaultMaximumWindow': '12',
         'loop': '',
@@ -43,12 +43,12 @@ def MergeBaseFormParams(campsite_form_params):
 # Campsite class for Steep Ravine cabins.
 class SteepRavine(object):
     name = 'Steep Ravine'
-    request_url = 'http://www.reserveamerica.com/camping/mount-tamalpais-sp/r/campgroundDetails.do?contractCode=CA&parkId=120063'
+    request_url = 'https://www.reserveamerica.com/camping/mount-tamalpais-sp/r/campgroundDetails.do?contractCode=CA&parkId=120063'
     form_params = MergeBaseFormParams({
         'contractCode': 'CA',
         'parkId': '120063',
-        'contractDefaultMaxWindow': 'MS:24,LT:18,GA:24',
-        'stateDefaultMaxWindow': 'MS:24,GA:24',
+        'contractDefaultMaxWindow': 'MS:24,LT:18,GA:24,SC:13,PA:24,LARC:24',
+        'stateDefaultMaxWindow': 'MS:24,GA:24,SC:13,PA:24,CO:24',
     })
     site_regex = re.compile(r'CB.*')
 
@@ -56,7 +56,7 @@ class SteepRavine(object):
 # Campsite class for black mountain lookout.
 class BlackMountainLookout(object):
     name = 'Black Mountain Lookout'
-    request_url = 'http://www.reserveamerica.com/camping/black-mountain-lookout/r/campgroundDetails.do?contractCode=NRSO&parkId=72306'
+    request_url = 'https://www.reserveamerica.com/camping/black-mountain-lookout/r/campgroundDetails.do?contractCode=NRSO&parkId=72306'
     form_params = MergeBaseFormParams({
         'contractCode': 'NRSO',
         'parkId': '72306',
