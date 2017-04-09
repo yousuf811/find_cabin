@@ -286,7 +286,7 @@ class AvailabilityFinder(object):
         self.logger.ClearBuffer()
         self.logger.Log('Starting search for %s' % self.campsite.name)
         today = datetime.date.today()
-        start_date = today + datetime.timedelta(days=3)  # Searches fail unless they are 3 days from today.
+        start_date = today + datetime.timedelta(days=1)
         end_date = today + datetime.timedelta(days=6*30)  # Search up to 6 months.
         try:
             # First find availability of all reservable sites in this campsite.
