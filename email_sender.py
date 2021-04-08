@@ -58,7 +58,7 @@ class EmailSender(object):
         message['To'] = ','.join(to_emails)
 
         self.logger.Log('Creating smtp server')
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server = smtplib.SMTP('smtp.mailgun.org', 587)
         self.logger.Log('\tstarttls')
         server.starttls()
         self.logger.Log('\tehlo')

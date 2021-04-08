@@ -36,7 +36,7 @@ USAGE = """
         FLUSH_LOGS = optional, default is true. If set then on each run log will be flushed to a local file.
     """
 
-RUN_FREQUENCY_SECS = 60*10  # How often the availability finder should run, currently every hour.
+RUN_FREQUENCY_SECS = 60*10  # How often the availability finder should run.
 EMAIL_FREQUENCY_SECS = 60*60*24  # How often we should send availability emails regardless of whether it changes, currently every 24 hours.
 
 # TODO: Do something about improving the way we do logging.
