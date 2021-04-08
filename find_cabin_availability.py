@@ -19,7 +19,7 @@ USAGE = """
         find_cabin_availability.py <FROM_EMAIL> <FROM_EMAIL_PASSWORD> <ADMIN_EMAIL> <CAMPSITE_INFO> <CAMPSITE_INFO> ...
 
     where:
-        FROM_EMAIL = the gmail address of the account from which notification emails will be sent.
+        FROM_EMAIL = the mailgun address of the account from which notification emails will be sent.
 
         FROM_EMAIL_PASSWORD = the password for the FROM_EMAIL account.
 
@@ -169,7 +169,7 @@ def main():
     if len(sys.argv) < 5:
         ErrorExit(USAGE)
 
-    from_email = sys.argv[1]  # Needs to be a gmail address
+    from_email = sys.argv[1]  # Needs to be a mailgun address
     from_email_password = sys.argv[2]
     admin_email = sys.argv[3]
     finders = []
