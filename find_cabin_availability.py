@@ -14,7 +14,6 @@ import parser_ra
 import parser_rc
 
 
-
 USAGE = """
     Usage:
         find_cabin_availability.py <FROM_EMAIL> <FROM_EMAIL_PASSWORD> <ADMIN_EMAIL> <CAMPSITE_INFO> <CAMPSITE_INFO> ...

@@ -86,10 +86,7 @@ class ReserveCaliforniaCampsite(Campsite):
     """Base class for all ReserveCalifornia based campsites.
 
     Subclasses should have the following attributes:
-     - place_id
-     - place_name
      - facility_id
-     - facility_type
     """
 
     @classmethod
@@ -97,14 +94,8 @@ class ReserveCaliforniaCampsite(Campsite):
         is_valid, err_msg = super(ReserveCaliforniaCampsite, cls).Validate()
         if not is_valid:
             return False, err_msg
-        if not hasattr(cls, 'place_id'):
-            return False, 'place_id static attribute not found on campsite class: %s' % cls.__name__
-        if not hasattr(cls, 'place_name'):
-            return False, 'place_name static attribute not found on campsite class: %s' % cls.__name__
         if not hasattr(cls, 'facility_id'):
             return False, 'facility_id static attribute not found on campsite class: %s' % cls.__name__
-        if not hasattr(cls, 'facility_type'):
-            return False, 'facility_type static attribute not found on campsite class: %s' % cls.__name__
         return True, None
 
 
@@ -112,10 +103,14 @@ class ReserveCaliforniaCampsite(Campsite):
 class SteepRavine(ReserveCaliforniaCampsite):
     name = 'Steep Ravine'
     site_regex = re.compile(r'CB.*')
-    place_id = '682'
-    place_name = 'Mount Tamalpais SP'
     facility_id = '766'
-    facility_type = '0'
+
+# Campsite class for Ritchey Creek Campground.
+class RitcheyCreekCampground(ReserveCaliforniaCampsite):
+    name = 'Ritchey Creek Campground'
+    site_regex = re.compile(r'.*')
+    facility_id = '782'
+
 
 
 # NO LONGER WORKS ON RESERVERAMERICA, HAS MOVED TO RECREATION.GOV
